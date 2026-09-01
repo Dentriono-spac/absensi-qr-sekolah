@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Absensi QR Sekolah</title>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: #0f766e;
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      margin-bottom: 15px;
+    }
+
+    #reader {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .status {
+      text-align: center;
+      font-weight: bold;
+      margin: 15px 0;
+    }
+
+    .success {
+      color: #15803d;
+    }
+
+    .error {
+      color: #dc2626;
+    }
+
+    .student {
+      display: none;
+    }
+
+    .student h2 {
+      margin-top: 0;
+      color: #0f766e;
+    }
+
+    .data-row {
+      padding: 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .value {
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .btn-scan {
+      background: #0f766e;
+      color: white;
+    }
+
+    .btn-reset {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    .footer {
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h1>ABSENSI QR SISWA</h1>
+    <p>Sistem Absensi Sekolah</p>
+  </div>
+
+  <div class="card">
+
+    <div id="reader"></div>
+
+    <div id="status" class="status">
+      Arahkan kamera ke QR Code siswa
+    </div>
+
+  </div>
+
+  <div id="studentCard" class="card student">
+
+    <h2>✓ SISWA DITEMUKAN</h2>
+
+    <div class="data-row">
+      <div class="label">ID SISWA</div>
+      <div id="studentId" class="value">-</div>
+    </div>
+
+    <div class="data-row">
+      <div class="label">NAMA</div>
+      <div id="studentName" class="value">-</div>
+    </div>
+
+    <div class="data-row">
+      <div class="label">NIS</div>
+      <div id="studentNis" class="value">-</div>
+    </div>
+
+    <div class="data-row">
+      <div class="label">KELAS</div>
+      <div id="studentClass" class="value">-</div>
+    </div>
+
+    <button class="btn-scan" onclick="startScanner()">
+      SCAN SISWA BERIKUTNYA
+    </button>
+
+  </div>
+
+  <div class="footer">
+    Sistem Kartu Pelajar Digital & Absensi QR
+  </div>
+
+</div>
+
+<script>
+
+let scanner;
+
+function startScanner() {
+
+  document.getElementById("studentCard").style.display = "none";
+
+  document.getElementById("status").innerHTML =
+    "Arahkan kamera ke QR Code siswa";
+
+  document.getElementById("status").className =
+    "status";
+
+  if (scanner) {
+    try {
+      scanner.clear();
+    } catch (e) {
+    }
+  }
+
+  scanner = new Html5Qrcode("reader");
+
+  scanner.start(
+    { facingMode: "environment" },
+
+    {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    function(decodedText) {
+
+      scanner.stop().then(() => {
+
+        tampilkanSiswa(decodedText);
+
+      }).catch(() => {
+
+        tampilkanSiswa(decodedText);
+
+      });
+
+    },
+
+    function(errorMessage) {
+      // Abaikan error scanning sementara
+    }
+
+  ).catch(function(error) {
+
+    document.getElementById("status").innerHTML =
+      "❌ Kamera tidak dapat digunakan.<br>Pastikan izin kamera diberikan.";
+
+    document.getElementById("status").className =
+      "status error";
+
+    console.log(error);
+
+  });
+
+}
+
+
+function tampilkanSiswa(qrData) {
+
+  /*
+    Untuk tahap pertama kita hanya membaca
+    ID yang ada di dalam QR.
+
+    Contoh:
+    STD-2026-000001
+  */
+
+  document.getElementById("studentId").innerText =
+    qrData;
+
+  /*
+    Data contoh sementara.
+    Nanti bagian ini akan kita hubungkan
+    ke Google Sheets.
+  */
+
+  document.getElementById("studentName").innerText =
+    "Data akan diambil dari database";
+
+  document.getElementById("studentNis").innerText =
+    "-";
+
+  document.getElementById("studentClass").innerText =
+    "-";
+
+  document.getElementById("studentCard").style.display =
+    "block";
+
+  document.getElementById("status").innerHTML =
+    "✓ QR BERHASIL DIBACA";
+
+  document.getElementById("status").className =
+    "status success";
+}
+
+
+/*
+  Jalankan scanner ketika halaman dibuka
+*/
+
+window.onload = function() {
+  startScanner();
+};
+
+</script>
+
+</body>
+</html>
