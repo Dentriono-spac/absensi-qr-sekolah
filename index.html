@@ -109,6 +109,11 @@
       margin-top: 12px;
     }
 
+    .btn-hadir {
+      background: #15803d;
+      color: white;
+    }
+
     .btn-scan {
       background: #0f766e;
       color: white;
@@ -117,6 +122,11 @@
     .btn-reset {
       background: #e2e8f0;
       color: #334155;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .footer {
@@ -170,11 +180,15 @@
       <div class="label">KELAS</div>
       <div id="studentClass" class="value">-</div>
     </div>
-    
-    <button id="btnHadir" class="btn-hadir" onclick="catatHadir()" style="display:none;">
+
+    <button
+      id="btnHadir"
+      class="btn-hadir"
+      onclick="catatHadir()"
+      style="display:none;">
       ✓ CATAT HADIR
     </button>
-    
+
     <button class="btn-scan" onclick="startScanner()">
       SCAN SISWA BERIKUTNYA
     </button>
@@ -187,13 +201,32 @@
 
 </div>
 
+
 <script>
 
-let scanner;
+let scanner = null;
+let currentId = "";
+
+
+/* =====================================================
+   URL GOOGLE APPS SCRIPT
+   ===================================================== */
+
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbyGEG-4YUswXDv2CMfMvX69nd_HQEs6InlW9lS3vUWS3ljZBUHguHZ8lMGXl5OM7ZCo/exec";
+
+
+/* =====================================================
+   MULAI SCANNER
+   ===================================================== */
 
 function startScanner() {
 
+  currentId = "";
+
   document.getElementById("studentCard").style.display = "none";
+
+  document.getElementById("btnHadir").style.display = "none";
 
   document.getElementById("status").innerHTML =
     "Arahkan kamera ke QR Code siswa";
@@ -201,16 +234,21 @@ function startScanner() {
   document.getElementById("status").className =
     "status";
 
+
   if (scanner) {
+
     try {
       scanner.clear();
-    } catch (e) {
-    }
+    } catch (e) {}
+
   }
+
 
   scanner = new Html5Qrcode("reader");
 
+
   scanner.start(
+
     { facingMode: "environment" },
 
     {
@@ -223,26 +261,32 @@ function startScanner() {
 
     function(decodedText) {
 
+      currentId = decodedText.trim();
+
+
       scanner.stop().then(() => {
 
-        tampilkanSiswa(decodedText);
+        tampilkanSiswa(currentId);
 
       }).catch(() => {
 
-        tampilkanSiswa(decodedText);
+        tampilkanSiswa(currentId);
 
       });
 
     },
 
     function(errorMessage) {
+
       // Abaikan error scanning sementara
+
     }
 
   ).catch(function(error) {
 
     document.getElementById("status").innerHTML =
-      "❌ Kamera tidak dapat digunakan.<br>Pastikan izin kamera diberikan.";
+      "❌ Kamera tidak dapat digunakan.<br>" +
+      "Pastikan izin kamera diberikan.";
 
     document.getElementById("status").className =
       "status error";
@@ -254,6 +298,10 @@ function startScanner() {
 }
 
 
+/* =====================================================
+   CARI DATA SISWA
+   ===================================================== */
+
 function tampilkanSiswa(qrData) {
 
   document.getElementById("status").innerHTML =
@@ -263,16 +311,16 @@ function tampilkanSiswa(qrData) {
     "status";
 
 
-  const API_URL =
-    "https://script.google.com/macros/s/AKfycbyGEG-4YUswXDv2CMfMvX69nd_HQEs6InlW9lS3vUWS3ljZBUHguHZ8lMGXl5OM7ZCo/exec";
-
-
-  const callbackName = "callbackSiswa_" + Date.now();
+  const callbackName =
+    "callbackSiswa_" + Date.now();
 
 
   window[callbackName] = function(data) {
 
     if (data.found) {
+
+      currentId = data.id;
+
 
       document.getElementById("studentId").innerText =
         data.id || "-";
@@ -290,8 +338,10 @@ function tampilkanSiswa(qrData) {
       document.getElementById("studentCard").style.display =
         "block";
 
+
       document.getElementById("btnHadir").style.display =
         "block";
+
 
       document.getElementById("status").innerHTML =
         "✓ DATA SISWA DITEMUKAN";
@@ -299,7 +349,9 @@ function tampilkanSiswa(qrData) {
       document.getElementById("status").className =
         "status success";
 
-    } else {
+    }
+
+    else {
 
       document.getElementById("status").innerHTML =
         "❌ SISWA TIDAK DITEMUKAN";
@@ -307,101 +359,16 @@ function tampilkanSiswa(qrData) {
       document.getElementById("status").className =
         "status error";
 
+      currentId = "";
+
     }
 
-    function catatHadir() {
-  const idSiswa = document.getElementById("studentId").innerText;
-  const btn = document.getElementById("btnHadir");
 
-  if (!idSiswa || idSiswa === "-") {
-    alert("Silakan scan QR siswa terlebih dahulu.");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerText = "⏳ MENYIMPAN...";
-
-  const callbackName = "callbackAbsensi_" + Date.now();
-
-  window[callbackName] = function(data) {
-
-    if (data.success) {
-      document.getElementById("status").innerHTML =
-        "✓ ABSENSI BERHASIL DICATAT";
-
-      document.getElementById("status").className =
-        "status success";
-
-      btn.innerText = "✓ SUDAH HADIR";
-
-      alert(
-        "Absensi berhasil dicatat untuk " +
-        (data.siswa || "siswa")
-      );
-
-    } else if (data.duplicate) {
-
-      document.getElementById("status").innerHTML =
-        "⚠ SISWA SUDAH ABSEN HARI INI";
-
-      document.getElementById("status").className =
-        "status error";
-
-      btn.innerText = "⚠ SUDAH ABSEN";
-
-    } else {
-
-      document.getElementById("status").innerHTML =
-        "❌ GAGAL MENCATAT ABSENSI";
-
-      document.getElementById("status").className =
-        "status error";
-
-      btn.disabled = false;
-      btn.innerText = "✓ CATAT HADIR";
-
-      alert(data.message || "Absensi gagal dicatat.");
-    }
-
-    delete window[callbackName];
-  };
-
-  const url =
-    API_URL +
-    "?action=recordAttendance" +
-    "&id=" + encodeURIComponent(idSiswa) +
-    "&callback=" + callbackName;
-
-  const script = document.createElement("script");
-  script.src = url;
-
-  script.onerror = function() {
-    btn.disabled = false;
-    btn.innerText = "✓ CATAT HADIR";
-
-    document.getElementById("status").innerHTML =
-      "❌ Koneksi ke server gagal";
-
-    document.getElementById("status").className =
-      "status error";
-
-    delete window[callbackName];
-    script.remove();
-  };
-
-  document.body.appendChild(script);
-}
-
-    // Hapus script sementara
-    script.remove();
-
-    // Hapus callback
     delete window[callbackName];
 
   };
 
 
-  // Membuat URL API
   const url =
     API_URL +
     "?action=getStudent" +
@@ -409,21 +376,191 @@ function tampilkanSiswa(qrData) {
     "&callback=" + callbackName;
 
 
-  // JSONP request
-  const script = document.createElement("script");
+  const script =
+    document.createElement("script");
+
 
   script.src = url;
+
+
+  script.onerror = function() {
+
+    document.getElementById("status").innerHTML =
+      "❌ Gagal terhubung ke server.";
+
+    document.getElementById("status").className =
+      "status error";
+
+    delete window[callbackName];
+
+    script.remove();
+
+  };
+
 
   document.body.appendChild(script);
 
 }
 
-/*
-  Jalankan scanner ketika halaman dibuka
-*/
+
+/* =====================================================
+   CATAT HADIR
+   ===================================================== */
+
+function catatHadir() {
+
+  const idSiswa =
+    document.getElementById("studentId").innerText;
+
+  const btn =
+    document.getElementById("btnHadir");
+
+
+  if (!idSiswa || idSiswa === "-") {
+
+    alert("Silakan scan QR siswa terlebih dahulu.");
+
+    return;
+
+  }
+
+
+  btn.disabled = true;
+
+  btn.innerText =
+    "⏳ MENYIMPAN...";
+
+
+  document.getElementById("status").innerHTML =
+    "⏳ Menyimpan absensi...";
+
+  document.getElementById("status").className =
+    "status";
+
+
+  const callbackName =
+    "callbackAbsensi_" + Date.now();
+
+
+  window[callbackName] = function(data) {
+
+
+    if (data.success) {
+
+      document.getElementById("status").innerHTML =
+        "✓ ABSENSI BERHASIL DICATAT";
+
+      document.getElementById("status").className =
+        "status success";
+
+
+      btn.innerText =
+        "✓ SUDAH HADIR";
+
+
+      alert(
+        "Absensi berhasil dicatat untuk " +
+        (data.siswa || "siswa")
+      );
+
+    }
+
+
+    else if (data.duplicate) {
+
+      document.getElementById("status").innerHTML =
+        "⚠ SISWA SUDAH ABSEN HARI INI";
+
+      document.getElementById("status").className =
+        "status error";
+
+
+      btn.innerText =
+        "⚠ SUDAH ABSEN";
+
+
+    }
+
+
+    else {
+
+      document.getElementById("status").innerHTML =
+        "❌ GAGAL MENCATAT ABSENSI";
+
+      document.getElementById("status").className =
+        "status error";
+
+
+      btn.disabled = false;
+
+      btn.innerText =
+        "✓ CATAT HADIR";
+
+
+      alert(
+        data.message ||
+        "Absensi gagal dicatat."
+      );
+
+    }
+
+
+    delete window[callbackName];
+
+  };
+
+
+  const url =
+    API_URL +
+    "?action=recordAttendance" +
+    "&id=" +
+    encodeURIComponent(idSiswa) +
+    "&callback=" +
+    callbackName;
+
+
+  const script =
+    document.createElement("script");
+
+
+  script.src = url;
+
+
+  script.onerror = function() {
+
+    btn.disabled = false;
+
+    btn.innerText =
+      "✓ CATAT HADIR";
+
+
+    document.getElementById("status").innerHTML =
+      "❌ Koneksi ke server gagal.";
+
+    document.getElementById("status").className =
+      "status error";
+
+
+    delete window[callbackName];
+
+    script.remove();
+
+  };
+
+
+  document.body.appendChild(script);
+
+}
+
+
+/* =====================================================
+   JALANKAN SCANNER SAAT HALAMAN DIBUKA
+   ===================================================== */
 
 window.onload = function() {
+
   startScanner();
+
 };
 
 </script>
