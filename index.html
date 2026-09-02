@@ -252,42 +252,83 @@ function startScanner() {
 
 function tampilkanSiswa(qrData) {
 
-  /*
-    Untuk tahap pertama kita hanya membaca
-    ID yang ada di dalam QR.
-
-    Contoh:
-    STD-2026-000001
-  */
-
-  document.getElementById("studentId").innerText =
-    qrData;
-
-  /*
-    Data contoh sementara.
-    Nanti bagian ini akan kita hubungkan
-    ke Google Sheets.
-  */
-
-  document.getElementById("studentName").innerText =
-    "Data akan diambil dari database";
-
-  document.getElementById("studentNis").innerText =
-    "-";
-
-  document.getElementById("studentClass").innerText =
-    "-";
-
-  document.getElementById("studentCard").style.display =
-    "block";
-
   document.getElementById("status").innerHTML =
-    "✓ QR BERHASIL DIBACA";
+    "⏳ Mencari data siswa...";
 
   document.getElementById("status").className =
-    "status success";
-}
+    "status";
 
+
+  const API_URL =
+    "https://script.google.com/macros/s/AKfycbyGEG-4YUswXDv2CMfMvX69nd_HQEs6InlW9lS3vUWS3ljZBUHguHZ8lMGXl5OM7ZCo/exec";
+
+
+  const callbackName = "callbackSiswa_" + Date.now();
+
+
+  window[callbackName] = function(data) {
+
+    if (data.found) {
+
+      document.getElementById("studentId").innerText =
+        data.id || "-";
+
+      document.getElementById("studentName").innerText =
+        data.nama || "-";
+
+      document.getElementById("studentNis").innerText =
+        data.nis || "-";
+
+      document.getElementById("studentClass").innerText =
+        data.kelas || "-";
+
+
+      document.getElementById("studentCard").style.display =
+        "block";
+
+
+      document.getElementById("status").innerHTML =
+        "✓ DATA SISWA DITEMUKAN";
+
+      document.getElementById("status").className =
+        "status success";
+
+    } else {
+
+      document.getElementById("status").innerHTML =
+        "❌ SISWA TIDAK DITEMUKAN";
+
+      document.getElementById("status").className =
+        "status error";
+
+    }
+
+
+    // Hapus script sementara
+    script.remove();
+
+    // Hapus callback
+    delete window[callbackName];
+
+  };
+
+
+  // Membuat URL API
+  const url =
+    API_URL +
+    "?action=getStudent" +
+    "&id=" + encodeURIComponent(qrData) +
+    "&callback=" + callbackName;
+
+
+  // JSONP request
+  const script = document.createElement("script");
+
+  script.src = url;
+
+  document.body.appendChild(script);
+
+}
 
 /*
   Jalankan scanner ketika halaman dibuka
