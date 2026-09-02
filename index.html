@@ -339,8 +339,11 @@ function tampilkanSiswa(qrData) {
         "block";
 
 
-      document.getElementById("btnHadir").style.display =
-        "block";
+      const btn = document.getElementById("btnHadir");
+
+      btn.style.display = "block";
+      btn.disabled = false;
+      btn.innerText = "✓ CATAT HADIR";
 
 
       document.getElementById("status").innerHTML =
