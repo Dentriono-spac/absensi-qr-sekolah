@@ -170,7 +170,11 @@
       <div class="label">KELAS</div>
       <div id="studentClass" class="value">-</div>
     </div>
-
+    
+    <button id="btnHadir" class="btn-hadir" onclick="catatHadir()" style="display:none;">
+      ✓ CATAT HADIR
+    </button>
+    
     <button class="btn-scan" onclick="startScanner()">
       SCAN SISWA BERIKUTNYA
     </button>
@@ -286,6 +290,8 @@ function tampilkanSiswa(qrData) {
       document.getElementById("studentCard").style.display =
         "block";
 
+      document.getElementById("btnHadir").style.display =
+        "block";
 
       document.getElementById("status").innerHTML =
         "✓ DATA SISWA DITEMUKAN";
@@ -303,6 +309,88 @@ function tampilkanSiswa(qrData) {
 
     }
 
+    function catatHadir() {
+  const idSiswa = document.getElementById("studentId").innerText;
+  const btn = document.getElementById("btnHadir");
+
+  if (!idSiswa || idSiswa === "-") {
+    alert("Silakan scan QR siswa terlebih dahulu.");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "⏳ MENYIMPAN...";
+
+  const callbackName = "callbackAbsensi_" + Date.now();
+
+  window[callbackName] = function(data) {
+
+    if (data.success) {
+      document.getElementById("status").innerHTML =
+        "✓ ABSENSI BERHASIL DICATAT";
+
+      document.getElementById("status").className =
+        "status success";
+
+      btn.innerText = "✓ SUDAH HADIR";
+
+      alert(
+        "Absensi berhasil dicatat untuk " +
+        (data.siswa || "siswa")
+      );
+
+    } else if (data.duplicate) {
+
+      document.getElementById("status").innerHTML =
+        "⚠ SISWA SUDAH ABSEN HARI INI";
+
+      document.getElementById("status").className =
+        "status error";
+
+      btn.innerText = "⚠ SUDAH ABSEN";
+
+    } else {
+
+      document.getElementById("status").innerHTML =
+        "❌ GAGAL MENCATAT ABSENSI";
+
+      document.getElementById("status").className =
+        "status error";
+
+      btn.disabled = false;
+      btn.innerText = "✓ CATAT HADIR";
+
+      alert(data.message || "Absensi gagal dicatat.");
+    }
+
+    delete window[callbackName];
+  };
+
+  const url =
+    API_URL +
+    "?action=recordAttendance" +
+    "&id=" + encodeURIComponent(idSiswa) +
+    "&callback=" + callbackName;
+
+  const script = document.createElement("script");
+  script.src = url;
+
+  script.onerror = function() {
+    btn.disabled = false;
+    btn.innerText = "✓ CATAT HADIR";
+
+    document.getElementById("status").innerHTML =
+      "❌ Koneksi ke server gagal";
+
+    document.getElementById("status").className =
+      "status error";
+
+    delete window[callbackName];
+    script.remove();
+  };
+
+  document.body.appendChild(script);
+}
 
     // Hapus script sementara
     script.remove();
